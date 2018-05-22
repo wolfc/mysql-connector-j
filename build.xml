@@ -247,7 +247,10 @@ com.mysql.jdbc.noCleanBetweenCompiles=yes
         <fail message="Hibernate libraries, required for build tasks, must be in the directory '${com.mysql.jdbc.extra.libs}/hibernate4'.">
             <condition>
                 <not>
-                    <available file="${com.mysql.jdbc.extra.libs}/hibernate4" type="dir" />
+                    <or>
+                        <available file="${com.mysql.jdbc.extra.libs}/hibernate4" type="dir" />
+                        <isset property="without-hibernate4" />
+                    </or>
                 </not>
             </condition>
         </fail>
@@ -255,11 +258,11 @@ com.mysql.jdbc.noCleanBetweenCompiles=yes
 
 
     <!-- Check for required JDKs for compilation. -->
-    <target name="-compiler-check" depends="-jdk5-check, -jdk8-check, -jre6-rtjar-check" />
+    <target name="-compiler-check" depends="-jdk5-check, -jdk8-check, -jre6-rtjar-check"/>
 
 
     <!-- Check for required JDK5 for compilation of JDBC 3 implementation. -->
-    <target name="-jdk5-check">
+    <target name="-jdk5-check" unless="without-jdk5">
         <property name="com.mysql.jdbc.jdk5.java" value="${com.mysql.jdbc.jdk5}/bin/java" />
         <property name="com.mysql.jdbc.jdk5.javac" value="${com.mysql.jdbc.jdk5}/bin/javac" />
 
@@ -287,7 +290,7 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
 
 
     <!-- Check for required JDK8 for compilation of JDBC 4+ implementation. -->
-    <target name="-jdk8-check">
+    <target name="-jdk8-check" unless="without-jdk8">
         <property name="com.mysql.jdbc.jdk8.java" value="${com.mysql.jdbc.jdk8}/bin/java" />
         <property name="com.mysql.jdbc.jdk8.javac" value="${com.mysql.jdbc.jdk8}/bin/javac" />
 
@@ -900,6 +903,7 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
             <include name="**/HibernateFabric.java" />
             <include name="**/JDBC4*.java" />
             <exclude name="**/JDBC42*.java" />
+            <exclude name="**/fabric/**/*.java" /> <!-- FIXME -->
             <include name="com/mysql/jdbc/exceptions/jdbc4/*" />
             <classpath refid="project.build.classpath" />
             <compilerarg line="${javac.compilerarg}" />
@@ -940,6 +944,7 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
                includeantruntime="false"
                source="1.5"
                target="1.5">
+            <include name="jdbc3/**" /> <!-- FIXME -->
             <include name="testsuite/**" />
             <exclude name="testsuite/requiresNonRedists/**" />
             <exclude name="testsuite/**/jdbc4*/**" />

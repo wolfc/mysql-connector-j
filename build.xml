@@ -258,7 +258,7 @@ com.mysql.jdbc.noCleanBetweenCompiles=yes
 
 
     <!-- Check for required JDKs for compilation. -->
-    <target name="-compiler-check" depends="-jdk5-check, -jdk8-check, -jre6-rtjar-check"/>
+    <target name="-compiler-check" depends="-jdk5-check, -ensure-jdk5-cmds, -jdk8-check, -ensure-jdk8-cmds, -jre6-rtjar-check" />
 
 
     <!-- Check for required JDK5 for compilation of JDBC 3 implementation. -->
@@ -289,6 +289,13 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
     </target>
 
 
+    <!-- Ensure jdk5 properties are set to a sensible default when compiling without jdk5 -->
+    <target name="-ensure-jdk5-cmds">
+        <property name="com.mysql.jdbc.jdk5.java" value="java" />
+        <property name="com.mysql.jdbc.jdk5.javac" value="javac" />
+    </target>
+
+
     <!-- Check for required JDK8 for compilation of JDBC 4+ implementation. -->
     <target name="-jdk8-check" unless="without-jdk8">
         <property name="com.mysql.jdbc.jdk8.java" value="${com.mysql.jdbc.jdk8}/bin/java" />
@@ -313,6 +320,13 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
                 </not>
             </condition>
         </fail>
+    </target>
+
+
+    <!-- Ensure jdk8 properties are set to a sensible default when compiling without jdk8 -->
+    <target name="-ensure-jdk8-cmds">
+        <property name="com.mysql.jdbc.jdk8.java" value="java" />
+        <property name="com.mysql.jdbc.jdk8.javac" value="javac" />
     </target>
 
 
@@ -687,13 +701,13 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
         <jar jarfile="${buildDir}/${fullProdName}/${fullProdName}.jar"
              basedir="${compiler.output}"
              includes="**/*.class,**/*.properties*,META-INF/**"
-             excludes="testsuite/**,demo/**"
+             excludes="testsuite/**,demo/**,java/**,javax/**"
              index="true"
              manifest="${buildDir}/${fullProdName}/META-INF/MANIFEST.MF" />
         <jar jarfile="${buildDir}/${fullProdName}/${fullProdName}-bin.jar"
              basedir="${compiler.output}"
              includes="**/*.class,**/*.properties*,META-INF/**"
-             excludes="testsuite/**,demo/**"
+             excludes="testsuite/**,demo/**,java/**,javax/**"
              index="true"
              manifest="${buildDir}/${fullProdName}/META-INF/MANIFEST.MF" />
     </target>
@@ -851,7 +865,7 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
     <!-- Compile the driver including JDBC 3 and JDBC 4+ implementations only. -->
     <target name="compile-driver"
             description="Compiles driver including JDBC 3 and JDBC 4+ implementations only."
-            depends="-compile-driver-jdbc3, -compile-driver-jdbc4" />
+            depends="-compile-driver-jdbc3, -compile-driver-jdbc4, -compile-driver-with-hibernate4" />
 
 
     <!-- Compile JDBC 3 implementation. -->
@@ -870,6 +884,7 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
                source="1.5"
                target="1.5">
             <include name="**/*.java" />
+            <!-- by virtue of the previous include the jdbc3 classes are included, no further enhancement is needed -->
             <exclude name="testsuite/**" />
             <exclude name="com/mysql/jdbc/integration/**" />
             <exclude name="com/mysql/jdbc/log/Log4JLogger.java" />
@@ -899,11 +914,8 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
                bootclasspath="${com.mysql.jdbc.jre6.rtjar}"
                source="1.6"
                target="1.6">
-            <include name="**/FabricMultiTenantConnectionProvider.java" />
-            <include name="**/HibernateFabric.java" />
             <include name="**/JDBC4*.java" />
             <exclude name="**/JDBC42*.java" />
-            <exclude name="**/fabric/**/*.java" /> <!-- FIXME -->
             <include name="com/mysql/jdbc/exceptions/jdbc4/*" />
             <classpath refid="project.build.classpath" />
             <compilerarg line="${javac.compilerarg}" />
@@ -927,6 +939,30 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
     </target>
 
 
+    <!-- Compile MySQL Fabric Hibernate Multi-tenant implementation. -->
+    <target name="-compile-driver-with-hibernate4" depends="-compile-driver-jdbc4" unless="without-hibernate4">
+        <echo>Compiling MySQL Connector/J Hibernate Multi-tenant implementation with '${com.mysql.jdbc.jdk8}' to '${compiler.output}'</echo>
+
+        <javac sourcepath=""
+               srcdir="${buildDir}/${fullProdName}"
+               destdir="${compiler.output}"
+               deprecation="off"
+               debug="${debug.enable}"
+               fork="yes"
+               executable="${com.mysql.jdbc.jdk8.javac}"
+               compiler="modern"
+               includeantruntime="false"
+               bootclasspath="${com.mysql.jdbc.jre6.rtjar}"
+               source="1.6"
+               target="1.6">
+            <include name="**/FabricMultiTenantConnectionProvider.java" />
+            <include name="**/HibernateFabric.java" />
+            <classpath refid="project.build.classpath" />
+            <compilerarg line="${javac.compilerarg}" />
+        </javac>
+    </target>
+
+
     <!-- Compile the driver including JDBC 3 and JDBC 4+ implementations and JUnit test suite. -->
     <target name="compile-testsuite"
             description="Compiles driver including JDBC 3 and JDBC 4+ implementations and JUnit test suite."
@@ -944,7 +980,7 @@ Java 8 (for JDBC 4+ implementation) is also required. Set the full path to this 
                includeantruntime="false"
                source="1.5"
                target="1.5">
-            <include name="jdbc3/**" /> <!-- FIXME -->
+            <include name="jdbc3/**" />
             <include name="testsuite/**" />
             <exclude name="testsuite/requiresNonRedists/**" />
             <exclude name="testsuite/**/jdbc4*/**" />
